@@ -30,7 +30,7 @@ Our workflow (**Figure 1A**) can be summarised by the following steps:
 
 ![Fig1](figures/fig1_overview.png)
 
-***Figure 1.*** *jou*
+***Figure 1.*** *(A) Quality estimation and modelling pipeline for copy number variation calls (pCNV). The pCNV quality metrics are estimated based on (B) whole genome sequencing (WGS) data and (C) gene expression (GE) and/or overall methylation intensity (MET) of genes/CpG sites overlapping the corresponding CNV call. (B) WGS metric is a fraction of pCNV that can be mapped to WGS CNVs of the same individual. (C) To calculate GE/MET metrics, the reference distribution of expression/intensity based on non-carriers (pink area) is approximated to standard normal distribution (red dashed line) and the Z score of the expression/intensity of each pCNV carrier (x<sub>i</sub>) is compared to it one at a time. The metric is a difference between the fraction of non-carriers with the corresponding value ≤xi and those with the corresponding value >x<sub>i</sub> and captures how extreme x<sub>i</sub> is compared to the reference distribution of non-carriers. In case a pCNV overlaps with several genes/CpG sites, the metric values are averaged over them.*
 
 ---
 
@@ -41,42 +41,114 @@ First, we saw high concordance between our three omics-based metrics. Both GE an
 Secondly, we evaluated the OQS prediction model and demonstrated the improvements achieved using two different approaches: 
 
 * in close family members from three independent datasets, the ‘familial’ CNVs shared between relatives (likely true positives) scored significantly higher with OQS compared to CNVs that were not shared between relatives (mix of true and false positives);
-* considering 21 previously published CNV-trait associations (**LINK**) and 89,516 Estonian Biobank samples, we showed that the relative increase in variance explained was up to 34% and 55% when comparing OQS to raw PennCNV output and a previously published CNV quality score (**LINK**), respectively.
+* considering 21 previously published CNV-trait associations ([Macé *et al.*, 2017](https://doi.org/10.1038/s41467-017-00556-x)) and 89,516 Estonian Biobank samples, we showed that the relative increase in variance explained was up to 34% and 55% when comparing OQS to raw PennCNV output and a previously published consensus-based CNV quality score (cQS) ([Macé *et al.*, 2016](https://doi.org/10.1093/bioinformatics/btw477)), respectively. 
 
+Both approaches (with relevant R scripts) are further discussed **LINKbelowLINK**.  
 
-Both approaches (with relevant R scripts) are further discussed **LINKbelowLINK**.
-For additional information, please see our preprint: **LINK**.
+For additional information, please see our preprint:  
+*Lepamets et al., 2022.* ***Omics-informed CNV calls reduce false positive rate and improve power for CNV-trait associations.*** *bioRxiv.* **LINK**
 
 ## Workflow setup
 
-The analysis is based on a set of R scripts. All scripts are run from the command line.
-R can be downloaded [here](https://www.r-project.org).
+The analysis is based on a set of R scripts. R can be downloaded [here](https://www.r-project.org).
 
-The following list of R packages is required for estimating and modelling CNV quality:
+All the necessary scripts can be downloaded from GitHub:
+
+~~~sh
+git clone https://github.com/maarjl/CNV_OQS.git
+~~~
+
+The scripts are run from the command line. The following list of R packages is required for estimating and modelling CNV quality:
 
 ~~~r
+# In R:
 install.packages("data.table")
+install.packages("dplyr")
+install.packages("stringr")
+install.packages("parallel")
+install.packages("optparse")
 ~~~
 
 Additionally, these packages are required to run all the code in this repository (including validation analyses presented in our paper):
 
 ~~~r
+# In R:
 install.packages("something")
 ~~~
 
 ## General usage
 
-### Input
+### Formatting pCNV table input
+
+#### PennCNV
+
+#### Other software
 
 ### Calculations of quality metrics based on omics layers
 
-#### Based on WGS
+#### Whole-genome sequencing (WGS) metric
+
+WGS metric is calculated as the proportion of an array-based CNV that overlaps with a WGS CNV. This step requires a pCNV table and WGS CNVs containing overlapping set of individuals as input.
+
+##### WGS input conversion
+
+In our study we used WGS CNVs detected with [Genome STRiP pipeline](https://software.broadinstitute.org/software/genomestrip/), which outputs the CNVs in VCF format as described [here](https://www.internationalgenome.org/wiki/Analysis/Variant%20Call%20Format/VCF%20(Variant%20Call%20Format)%20version%204.0/encoding-structural-variants/). Our pipeline requires the presence of CHROM and POS (CNV start position) columns, END tag (CNV end position) in INFO column, CN (copy number) and CNQ/FT (CN quality/filter) tags in FORMAT column/genotype fields. 
+
+First, we only keep the necessary data and convert the VCF file to tab-separated table using [bcftools](https://www.htslib.org/download/):
+
+~~~sh
+bcftools query \
+	-i 'FILTER="PASS"' \
+	-f '%CHROM\t%POS\t%END[\t%SAMPLE:CN=%CN:CNQ=%CNQ:FT=%FT]\n' \
+	example/example_wgs_cnv.vcf > example/example_wgs_cnv.tsv
+~~~
+
+Secondly, we perform the final conversion and filtering using a custom R script. For filtering based on FT tag (PASS/LQ) we run:
+
+~~~sh
+Rscript code/Rscript_wgscnv_preparations.R \
+	-i example/example_wgs_cnv.tsv \
+	--missing 0.1 \
+	-o example/example_wgs_cnv_formatted.tsv
+~~~
+
+Otherwise, it is also possible to filter based on a threshold CNQ value:
+
+~~~sh
+Rscript code/Rscript_wgscnv_preparations.R \
+	-i example/example_wgs_cnv.tsv \
+	--cnq 10 \
+	--missing 0.1 \
+	-o example/example_wgs_cnv_formatted.tsv
+~~~
+
+In both cases, sites with high missingness (after quality filtering) are excluded.
+
+##### WGS metric calculation:
+
+~~~sh
+Rscript code/Rscript_wgs_metric.R \
+	--pcnv example/example_pcnv.tsv \
+	--wgscnv example/example_wgs_cnv_formatted.tsv \
+	--cores 40 \
+	-o example/wgs_metrics.tsv
+~~~
+
+#### Methylation (MET) metric
+
+MET metric is calculated as a measure of methylation intensity deviation of a potential CNV carrier compared to general copy-neutral population. The required input includes the pCNV table and ...
 
 ~~~sh
 mkdir jou
 ~~~
 
-#### Based on methylation or gene expression
+#### Gene expression (GE) metric
+
+GE metric is calculated analogously to MET metric and is as a measure of gene expression deviation of a potential CNV carrier compared to general copy-neutral population. The required input includes the pCNV table and ... 
+
+~~~sh
+mkdir jou
+~~~
 
 ### Modelling CNV quality
 
@@ -101,6 +173,22 @@ Figure of 16p region
 ![](figures/fig_16p.png)
 
 ## Contact and citation
+
+Correspondence should be addressed to:
+
+Maarja Lepamets  
+PhD student, Institute of Genomics, University of Tartu  
+maarja.lepamets@ut.ee
+
+Zoltán Kutalik  
+Associate Professor, Department of Computational Biology, University of Lausanne  
+zoltan.kutalik@unil.ch
+
+---
+
+If you apply our omics-informed CNV quality estimation concept or use the OQS model for PennCNV in your work, please cite the following preprint:  
+
+*Lepamets M., Auwerx C., Nõukas M., Claringbould A., Porcu E., Kals M., Jürgenson T., Estonian Biobank Research Team, Morris A.P., Võsa U., Bochud M., Stringhini S., Wijmenga C., Franke L., Peterson H., Vilo J., Lepik K., Mägi R., Kutalik Z.* ***Omics-informed CNV calls reduce false positive rate and improve power for CNV-trait associations.*** *(2022) bioRxiv.* **LINK**
 
  
 
