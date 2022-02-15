@@ -64,9 +64,15 @@ The scripts are run from the command line. The following list of R packages is r
 # In R:
 install.packages("data.table")
 install.packages("dplyr")
-install.packages("stringr")
 install.packages("parallel")
 install.packages("optparse")
+
+# WGS metric calculation
+install.packages("stringr") 
+
+# Methylation data extraction
+install.packages("minfi") 
+install.packages("IlluminaHumanMethylation450kmanifest") 
 ~~~
 
 Additionally, these packages are required to run all the code in this repository (including validation analyses presented in our paper):
@@ -134,21 +140,89 @@ Rscript code/Rscript_wgs_metric.R \
 	-o example/wgs_metrics.tsv
 ~~~
 
-#### Methylation (MET) metric
-
-MET metric is calculated as a measure of methylation intensity deviation of a potential CNV carrier compared to general copy-neutral population. The required input includes the pCNV table and ...
-
-~~~sh
-mkdir jou
-~~~
 
 #### Gene expression (GE) metric
 
-GE metric is calculated analogously to MET metric and is as a measure of gene expression deviation of a potential CNV carrier compared to general copy-neutral population. The required input includes the pCNV table and ... 
+GE metric is calculated as a measure of gene expression deviation of a potential CNV carrier compared to general copy-neutral population. The required input includes the pCNV table and gene expression matrix. The quality control and normalisation of gene expression values is discussed in the Supplemental Notes of our **LINKpaperLINK** and should be done with external software or scripts. In short, we
+
+1. removed genes with low or no expression in the majority of individuals by requiring for each gene to have ≥ 5 individuals with a count per million (cpm) value greater than 0.5; 
+2. normalised remaining genes by weighted trimmed mean of M-values; 
+3. calculated the log(cpm) values of each gene, and Z-transformed these values.
+
+As a results, we obtained an expression matrix with genes in rows and samples in columns:
+
+~~~
+	sample001	sample002	...
+gene01	1.02	-0.09	...
+gene02	0.42	-0.89	...
+...
+~~~
+
+We have saved it as an R object with .RDS file extension (`example/example_gene_expression.RDS`).
+
+Additionally, a table with gene locations (`example/gene_locations.tsv`) is required with columns `Name`, `Chromosome`, `Start` and `End`. Column `Name` should match the rownames of expression matrix.
+
+##### Correction for eQTLs
+
+##### Covariates table
+
+##### GE metric calculation:
+
+#### Methylation (MET) metric
+
+MET metric is calculated analogously to GE metric and is a measure of overall methylation intensity deviation of a potential CNV carrier compared to general copy-neutral population. The required input includes the pCNV table and methylation IDAT files from Illumina Human Methylation 450k array. Additionally, a table with CpG site locations (`example/cpg_locations.tsv`) is required, containing columns `Name`, `Chromosome` and `Position`.
+
+##### Methylation data preparations
+
+We require a two-column table (`samples_idat.tbl`) of samples containing sample names and path to its IDAT files:
+
+~~~
+Sample_Name	Path  
+sample001	/path/to/sample001
+sample002	/path/to/sample002
+...
+~~~
+
+For each sample, a pair of IDAT files should be present `${Path}_Grn.idat` and `${Path}_Red.idat`. Methylation matrices are generated using an R script:
 
 ~~~sh
-mkdir jou
+Rscript code/Rscript_prepare_methylation_matrices.R \
+	--samples samples_idat.tbl \
+	--output example/example_meth_formatted.RDS
 ~~~
+
+##### Covariates table
+
+It is possible to add any number of covariates to MET metric calculations. The covariates should be in a separate tab-delimited table with first column as sample names (see example table below). The table should contain a header. 
+All methylation intensity values will be corrected for covariates prior further calculations. Since in our study we only use overall methylation intensity values (sum of methylated and un-methylated intensities) per CpG site, we primarily suggest to include technical aspects as covariates, i.e., study name (if several methylation studies are combined). 
+
+Example covariates table:
+
+~~~
+Sample_Name	Study  
+sample001	STD1
+sample002	STD1
+...
+sample150	STD2
+...
+~~~
+
+Optionally, a number of principal components (PCs) calculated from the overall methylation intensity matrix will be used as covariates. However, these can be specified in the metric calculation step and should not be included in the covariates table.
+
+##### MET metric calculation:
+
+~~~sh
+Rscript code/Rscript_met_metric.R \
+	--pcnv example/example_pcnv.tsv \
+	--meth example/example_methylation_formatted.tsv \
+	--covariates example/example_methylation_covariates.tsv \
+	--cpg example/cpg_locations.tsv \
+	--cores 40 \
+	--npcs 10 \
+	-o example/met_metrics.tsv
+~~~
+
+#### Combined omics-based metric
 
 ### Modelling CNV quality
 
