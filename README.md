@@ -7,15 +7,15 @@ Our study focuses on CNV from array data using the popular [PennCNV](http://penn
 
 ## Get started
 
-* Familiarise yourself with our workflow by reading the [**overview**](##-workflow-overview) or our [**preprint**](https://doi.org/10.1101/2022.02.07.479374). 
-* [**Download**](##workflow-setup) the workflow scripts and necessary R packages.
+* Familiarise yourself with our workflow by reading the [**overview**](#workflow-overview) or our [**preprint**](https://doi.org/10.1101/2022.02.07.479374). 
+* [**Download**](#workflow-setup) the workflow scripts and necessary R packages.
 * [**Estimate**](#general-usage) CNV quality based on 
-	* [whole-genome sequencing data](),
-	* [gene expression data](),
-	* [methylation intensity data]() 
+	* [whole genome sequencing data](#whole-genome-sequencing-metric),
+	* [gene expression data](#gene-expression-metric),
+	* [methylation intensity data](#methylation-metric) 
 	
-	*or* [**use**](#) our prebuilt CNV quality model for PennCNV.
-* [**Contact**]() us with additional questions or comments.
+	*or* [**use**](#applying-penncnv-model-to-your-cnv-data) our prebuilt CNV quality model for PennCNV.
+* [**Contact**](#contact-and-citation) us with additional questions or comments.
 
 ## Workflow overview
 
@@ -27,7 +27,7 @@ Our study focuses on CNV from array data using the popular [PennCNV](http://penn
 
 2. **CNV quality evaluation based on multiple omics data layers** - Using samples for which additional omics data is available, we calculate an omics-informed quality metric for each CNV. The final metric is combined from up to three individual metrics (with values ranging between 0 and 1) from different omics layers:
 
-	* **whole-genome sequencing (WGS) metric** -- WGS metric can be used to assess the quality of CNVs called from genotyping array intensities if (a subset of) samples also have WGS data available. The metric is calculated as the fraction of CNV region (in basepairs) that can be validated with CNVs called from WGS reads;
+	* **whole genome sequencing (WGS) metric** -- WGS metric can be used to assess the quality of CNVs called from genotyping array intensities if (a subset of) samples also have WGS data available. The metric is calculated as the fraction of CNV region (in basepairs) that can be validated with CNVs called from WGS reads;
 	* **gene expression (GE) metric** -- GE metric is based on the assumption that true CNVs alter (deletions decrease and duplications increase) the expression level of genes they overlap, while false calls have no effect on gene expression. The metric captures how extreme a gene expression level of a potential CNV carrier is compared to that of the bulk of the samples assumed to be copy neutral;
 	* **methylation intensity (MET) metric** -- MET metric is calculated analogously to GE metric and is based on the assumption that true CNVs alter the overall methylation intensity (sum of methylated and unmethylated intensities) of CpG sites they overlap, while false calls do not.
 
@@ -112,9 +112,9 @@ sample002	2			242917734			243034519		1			116786
 
 ### Calculations of quality metrics based on omics layers
 
-#### Whole-genome sequencing (WGS) metric
+#### Whole genome sequencing metric
 
-WGS metric is calculated as the proportion of an array-based CNV that overlaps with a WGS CNV. This step requires a pCNV table and WGS CNVs containing overlapping set of individuals as input.
+Whole genome sequencing (WGS) metric is calculated as the proportion of an array-based CNV that overlaps with a WGS CNV. This step requires a pCNV table and WGS CNVs containing overlapping set of individuals as input.
 
 ##### WGS input conversion
 
@@ -162,9 +162,9 @@ Rscript code/Rscript_wgs_metric.R \
 
 ---
 
-#### Gene expression (GE) metric
+#### Gene expression metric
 
-GE metric is calculated as a measure of gene expression deviation of a potential CNV carrier compared to general copy-neutral population. The required input includes the pCNV table and gene expression matrix. The quality control and normalisation of gene expression values is discussed in the Supplemental Notes of our [paper](https://doi.org/10.1101/2022.02.07.479374) and should be done with external software or scripts. In short, we
+Gene expression (GE) metric is calculated as a measure of gene expression deviation of a potential CNV carrier compared to general copy-neutral population. The required input includes the pCNV table and gene expression matrix. The quality control and normalisation of gene expression values is discussed in the Supplemental Notes of our [paper](https://doi.org/10.1101/2022.02.07.479374) and should be done with external software or scripts. In short, we
 
 1. removed genes with low or no expression in the majority of individuals by requiring for each gene to have ≥ 5 individuals with a count per million (cpm) value greater than 0.5; 
 2. normalised remaining genes by weighted trimmed mean of M-values; 
@@ -194,7 +194,7 @@ gene02	20	49551404	49575092
 
 Our method presents an option to correct gene expression values to its top eQTL genotypes prior GE metric calculations. For this, we only use eQTLs that are not correlated to CNVs. Our study suggests that such corrections improve the CNV quality estimations. 
 
-Conditional eQTL analysis should be done with external software such as **LINKqtltoolsLINK** and the output should be converted to a table `--eqtl` with following mandatory columns:
+Conditional eQTL analysis should be done with external software such as [qtltools](https://qtltools.github.io/qtltools/) and the output should be converted to a table `--eqtl` with following mandatory columns:
 
 ~~~
 *TODO: eQTL table example*
@@ -230,7 +230,7 @@ All gene expression values will be corrected for covariates prior further calcul
 Additionally, GE metric calculation step takes the following optional parameters:
 
 * `--gene_overlap` specifies the required overlap between gene and CNV (in bp), divided by the length of the gene;
-* `--dd_genes` is a list of dosage-dependent genes (i.e., genes correlated to CNVs) found in an independent study **LINKLINK**;
+* `--dd_genes` is a list of dosage-dependent genes (i.e., genes correlated to CNVs) found in an independent study ([Talevich and Hunter Shain, 2018](https://www.biorxiv.org/content/10.1101/408534v1));
 * `--dd_cutoff` is a correlation cutoff based on which the dosage-dependence is established;
 * `--npcs` is a number of expression PCs used as covariates.
 
@@ -252,9 +252,9 @@ Rscript code/Rscript_ge_metric.R \
 
 ---
 
-#### Methylation (MET) metric
+#### Methylation metric
 
-MET metric is calculated analogously to GE metric and is a measure of overall methylation intensity deviation of a potential CNV carrier compared to general copy-neutral population. The required input includes the pCNV table and methylation IDAT files from Illumina Human Methylation 450k array. Additionally, a table with CpG site locations (`example/cpg_locations.tsv`) is required, containing columns `Name`, `Chromosome` and `Position`.
+Methylation (MET) metric is calculated analogously to GE metric and is a measure of overall methylation intensity deviation of a potential CNV carrier compared to general copy-neutral population. The required input includes the pCNV table and methylation IDAT files from Illumina Human Methylation 450k array. Additionally, a table with CpG site locations (`example/cpg_locations.tsv`) is required, containing columns `Name`, `Chromosome` and `Position`.
 
 ##### Methylation data preparations
 
