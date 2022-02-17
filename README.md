@@ -1,22 +1,35 @@
 # Omics-informed CNV Quality Estimation
 
-## Overview
+Recently, studying phenotype associations with copy number variations (CNV) have become more common but the CNV detection step remains challenging and prone to false positive calls. 
+We have developed (and to provided the user with means to develop) an **omics-informed CNV quality score (OQS)** prediction model based on several omics layers from multiple orthogonal sources. Once developed, OQS model can be used to predict CNV quality even in datasets that lack additional omics layers altogether. Its aim is to down-weight CNV calls based on their likelihood of being false positive and, thus, to improve statistical power for follow-up association analyses. 
 
-Recently, studying phenotype associations with copy number variations (CNV) have become more common but the CNV detection step remains challenging and prone to false positive calls. Therefore, additional filtering or quality estimation steps are necessary. This is especially true for CNV detection from widely available genotyping array data. 
+Our study focuses on CNV from array data using the popular [PennCNV](http://penncnv.openbioinformatics.org/en/latest/) detection software. We have enclosed our ready-to-use OQS model and the code necessary for the user to directly apply it to their PennCNV data. However, **our quality estimation concepts (and scripts!) are not limited by the choice of detection algorithm**. Even if PennCNV is used, for datasets with at least one additional omics layer available, we strongly encourage the users to build their own custom model tailored for their specific dataset. 
 
-Our aim is to develop (and to provide the user with means to develop) an **omics-informed CNV quality score (OQS)** prediction model based on several omics layers from multiple orthogonal sources. Once developed, OQS model can be used to predict CNV quality even in datasets that lack additional omics layers altogether. Its aim is to down-weight CNV calls based on their likelihood of being false positive and, thus, to improve statistical power for follow-up association analyses. 
+## Get started
 
-Our **LINKstudyLINK** focuses on CNV from array data using the popular [PennCNV](http://penncnv.openbioinformatics.org/en/latest/) detection software. We have enclosed our ready-to-use OQS model and the code necessary for the user to directly apply it to their PennCNV data. However, **our quality estimation concepts (and scripts!) are not limited by the choice of detection algorithm**. Even if PennCNV is used, for datasets with at least one additional omics layer available, we strongly encourage the users to build their own custom model tailored for their specific dataset. 
+* Familiarise yourself with our workflow by reading the [**overview**](##-workflow-overview) or our [**preprint**](https://doi.org/10.1101/2022.02.07.479374). 
+* [**Download**](##workflow-setup) the workflow scripts and necessary R packages.
+* [**Estimate**](#general-usage) CNV quality based on 
+	* [whole-genome sequencing data](),
+	* [gene expression data](),
+	* [methylation intensity data]() 
+	
+	*or* [**use**](#) our prebuilt CNV quality model for PennCNV.
+* [**Contact**]() us with additional questions or comments.
 
-Our workflow (**Figure 1A**) can be summarised by the following steps:
+## Workflow overview
+
+![Fig1](figures/fig1_overview.png)
+
+**Our workflow can be summarised by the following steps:**
 
 1. **CNV detection** - This step is specific to the choice of your detection method. We used the Hidden Markov Model (HMM)-based [PennCNV](http://penncnv.openbioinformatics.org/en/latest/) software.
 
 2. **CNV quality evaluation based on multiple omics data layers** - Using samples for which additional omics data is available, we calculate an omics-informed quality metric for each CNV. The final metric is combined from up to three individual metrics (with values ranging between 0 and 1) from different omics layers:
 
-	* **whole-genome sequencing (WGS) metric** -- WGS metric can be used to assess the quality of CNVs called from genotyping array intensities if (a subset of) samples also have WGS data available. The metric is calculated as the fraction of CNV region (in basepairs) that can be validated with CNVs called from WGS reads (**Figure 1B**);
-	* **gene expression (GE) metric** -- GE metric is based on the assumption that true CNVs alter (deletions decrease and duplications increase) the expression level of genes they overlap, while false calls have no effect on gene expression. The metric captures how extreme a gene expression level of a potential CNV carrier is compared to that of the bulk of the samples assumed to be copy neutral (**Figure 1C**);
-	* **methylation intensity (MET) metric** -- MET metric is calculated analogously to GE metric and is based on the assumption that true CNVs alter the overall methylation intensity (sum of methylated and unmethylated intensities) of CpG sites they overlap, while false calls do not (**Figure 1C**).
+	* **whole-genome sequencing (WGS) metric** -- WGS metric can be used to assess the quality of CNVs called from genotyping array intensities if (a subset of) samples also have WGS data available. The metric is calculated as the fraction of CNV region (in basepairs) that can be validated with CNVs called from WGS reads;
+	* **gene expression (GE) metric** -- GE metric is based on the assumption that true CNVs alter (deletions decrease and duplications increase) the expression level of genes they overlap, while false calls have no effect on gene expression. The metric captures how extreme a gene expression level of a potential CNV carrier is compared to that of the bulk of the samples assumed to be copy neutral;
+	* **methylation intensity (MET) metric** -- MET metric is calculated analogously to GE metric and is based on the assumption that true CNVs alter the overall methylation intensity (sum of methylated and unmethylated intensities) of CpG sites they overlap, while false calls do not.
 
 	If more than one omics layer is used, the final quality metric per CNV is taken to be equal to the 'most extreme' omics-based metric of that CNV (i.e., metric that maximises the `abs(0.5 - metric_value)`).
 	
@@ -28,12 +41,6 @@ Our workflow (**Figure 1A**) can be summarised by the following steps:
 
 ---
 
-![Fig1](figures/fig1_overview.png)
-
-***Figure 1.*** *(A) Quality estimation and modelling pipeline for copy number variation calls (pCNV). The pCNV quality metrics are estimated based on (B) whole genome sequencing (WGS) data and (C) gene expression (GE) and/or overall methylation intensity (MET) of genes/CpG sites overlapping the corresponding CNV call. (B) WGS metric is a fraction of pCNV that can be mapped to WGS CNVs of the same individual. (C) To calculate GE/MET metrics, the reference distribution of expression/intensity based on non-carriers (pink area) is approximated to standard normal distribution (red dashed line) and the Z score of the expression/intensity of each pCNV carrier (x<sub>i</sub>) is compared to it one at a time. The metric is a difference between the fraction of non-carriers with the corresponding value ≤xi and those with the corresponding value >x<sub>i</sub> and captures how extreme x<sub>i</sub> is compared to the reference distribution of non-carriers. In case a pCNV overlaps with several genes/CpG sites, the metric values are averaged over them.*
-
----
-
 ### How well do the omics-informed quality estimations work?
 
 First, we saw high concordance between our three omics-based metrics. Both GE and MET metrics had high Pearson correlations (R>0.7) when compared to WGS metric. This indicates that either gene expression or methylation intensity data is suitable for CNV quality evaluations if WGS data is not available. All three metrics showed bimodal distribution with modes near 0 and 1 in multiple independent datasets included in our study. Indeed, in all of them >85% of CNVs were evaluated with metric values <0.1 or >0.9. This means that the metrics clearly differentiate between true and false calls for the majority of CNVs.
@@ -42,11 +49,6 @@ Secondly, we evaluated the OQS prediction model and demonstrated the improvement
 
 * in close family members from three independent datasets, the ‘familial’ CNVs shared between relatives (likely true positives) scored significantly higher with OQS compared to CNVs that were not shared between relatives (mix of true and false positives);
 * considering 21 previously published CNV-trait associations ([Macé *et al.*, 2017](https://doi.org/10.1038/s41467-017-00556-x)) and 89,516 Estonian Biobank samples, we showed that the relative increase in variance explained was up to 34% and 55% when comparing OQS to raw PennCNV output and a previously published consensus-based CNV quality score (cQS) ([Macé *et al.*, 2016](https://doi.org/10.1093/bioinformatics/btw477)), respectively. 
-
-Both approaches (with relevant R scripts) are further discussed **LINKbelowLINK**.  
-
-For additional information, please see our preprint:  
-*Lepamets et al., 2022.* ***Omics-informed CNV calls reduce false positive rate and improve power for CNV-trait associations.*** *bioRxiv.* **LINK**
 
 ## Workflow setup
 
@@ -64,6 +66,7 @@ The scripts are run from the command line. The following list of R packages is r
 # In R:
 install.packages("data.table")
 install.packages("dplyr")
+install.packages("tibble")
 install.packages("parallel")
 install.packages("optparse")
 
@@ -73,22 +76,39 @@ install.packages("stringr")
 # Methylation data extraction
 install.packages("minfi") 
 install.packages("IlluminaHumanMethylation450kmanifest") 
+
+# Gene expression metric calculations
+install.packages("snpStats") # for eQTL correction
 ~~~
 
 Additionally, these packages are required to run all the code in this repository (including validation analyses presented in our paper):
 
 ~~~r
 # In R:
-install.packages("something")
+install.packages("bigsnpr")
 ~~~
 
 ## General usage
 
 ### Formatting pCNV table input
 
-#### PennCNV
+The main input for most of our scripts is a simple tab-delimited pCNV table. To facilitate modelling steps of the workflow, it is necessary that the table already contains all parameters (output by CNV detection algorithm) that will be used as CNV quality predictors.
 
-#### Other software
+The table should contain the following columns: `Sample_Name`, `Chromosome`, `Start_Position_bp`, `End_Position_bp` and `Copy_Number`. These columns should be followed by user-specified predictor columns (e.g., CNV length, number of CNVs per sample, etc).
+
+The example pCNV table:
+
+~~~
+Sample_Name	Chromosome	Start_Position_bp	End_Position_bp	Copy_Number	Length_bp	...
+sample001	3			5601191				5605087			1			3897
+sample001	16			77694411			77843210		3			148800
+sample002	2			242917734			243034519		1			116786
+...
+~~~
+
+*We will provide scripts for pCNV table formatting for PennCNV output.*
+
+---
 
 ### Calculations of quality metrics based on omics layers
 
@@ -140,10 +160,11 @@ Rscript code/Rscript_wgs_metric.R \
 	-o example/wgs_metrics.tsv
 ~~~
 
+---
 
 #### Gene expression (GE) metric
 
-GE metric is calculated as a measure of gene expression deviation of a potential CNV carrier compared to general copy-neutral population. The required input includes the pCNV table and gene expression matrix. The quality control and normalisation of gene expression values is discussed in the Supplemental Notes of our **LINKpaperLINK** and should be done with external software or scripts. In short, we
+GE metric is calculated as a measure of gene expression deviation of a potential CNV carrier compared to general copy-neutral population. The required input includes the pCNV table and gene expression matrix. The quality control and normalisation of gene expression values is discussed in the Supplemental Notes of our [paper](https://doi.org/10.1101/2022.02.07.479374) and should be done with external software or scripts. In short, we
 
 1. removed genes with low or no expression in the majority of individuals by requiring for each gene to have ≥ 5 individuals with a count per million (cpm) value greater than 0.5; 
 2. normalised remaining genes by weighted trimmed mean of M-values; 
@@ -160,13 +181,76 @@ gene02	0.42	-0.89	...
 
 We have saved it as an R object with .RDS file extension (`example/example_gene_expression.RDS`).
 
-Additionally, a table with gene locations (`example/gene_locations.tsv`) is required with columns `Name`, `Chromosome`, `Start` and `End`. Column `Name` should match the rownames of expression matrix.
+Additionally, a table with gene locations `--gene_loc` is required with columns `Name`, `Chromosome`, `Start` and `End`. Values in column `Name` should match the rownames of expression matrix.
+
+~~~
+Name	Chromosome	Start	End
+gene01	1	169818772	169863408
+gene02	20	49551404	49575092
+...
+~~~
 
 ##### Correction for eQTLs
 
+Our method presents an option to correct gene expression values to its top eQTL genotypes prior GE metric calculations. For this, we only use eQTLs that are not correlated to CNVs. Our study suggests that such corrections improve the CNV quality estimations. 
+
+Conditional eQTL analysis should be done with external software such as **LINKqtltoolsLINK** and the output should be converted to a table `--eqtl` with following mandatory columns:
+
+~~~
+*TODO: eQTL table example*
+~~~ 
+
+We have included an R script to extract eQTLs that are not correlated to CNVs that overlap the corresponsing gene. Currently, our script only supports Plink v1 BED/BIM/FAM files for eQTL genotypes `--bfile`.
+
+~~~
+Rscript code/Rscript_get_independent_eqtl.R \
+	--pcnv example/example_pcnv.tsv \
+	--eqtl example/eqtl_table.tsv \
+	--bfile example/eqtl_genotypes \
+	--gene_loc example/gene_locations.tsv \
+	-o example/independent_eqtl_table.tsv
+~~~ 
+
 ##### Covariates table
 
-##### GE metric calculation:
+Besides eQTLs, it is possible to add any number of covariates to GE metric calculations. The covariates should be in a separate tab-delimited table with first column as sample names (see example table below). The table should contain a header. 
+
+~~~
+Sample_Name	Cov1	Cov2	...
+sample001	1	0.43
+sample002	1	1.20
+sample003	2	0.98
+...	
+~~~ 
+
+All gene expression values will be corrected for covariates prior further calculations. In our study we corrected the gene expression for age, sex, blood component values, batch and four principal components (PCs) calculated based on SNP genotypes. Optionally, a number of PCs calculated from the gene expression matrix can be used as covariates. However, these can be specified in the metric calculation step and should not be included in the covariates table.
+
+##### GE metric calculation
+
+Additionally, GE metric calculation step takes the following optional parameters:
+
+* `--gene_overlap` specifies the required overlap between gene and CNV (in bp), divided by the length of the gene;
+* `--dd_genes` is a list of dosage-dependent genes (i.e., genes correlated to CNVs) found in an independent study **LINKLINK**;
+* `--dd_cutoff` is a correlation cutoff based on which the dosage-dependence is established;
+* `--npcs` is a number of expression PCs used as covariates.
+
+~~~
+Rscript code/Rscript_ge_metric.R \
+	--pcnv example/example_pcnv.tsv \
+	--ge example/example_gene_expression.RDS \
+	--covariates example/example_gene_expression_covariates.tsv \
+	--eqtl example/independent_eqtl_table.tsv \
+	--bfile example/eqtl_genotypes \
+	--gene_loc example/gene_location_table.tsv \
+	--gene_overlap 0.8 \
+	--dd_genes tcga-skcm.cnv-expr-corr.tsv \
+	--dd_cutoff 0.1 \
+	--cores 40 \
+	--npcs 10 \
+	-o example/ge_metrics.tsv
+~~~ 
+
+---
 
 #### Methylation (MET) metric
 
@@ -207,14 +291,14 @@ sample150	STD2
 ...
 ~~~
 
-Optionally, a number of principal components (PCs) calculated from the overall methylation intensity matrix will be used as covariates. However, these can be specified in the metric calculation step and should not be included in the covariates table.
+Optionally, a number of PCs calculated from the overall methylation intensity matrix will be used as covariates. However, these can be specified in the metric calculation step and should not be included in the covariates table.
 
 ##### MET metric calculation:
 
 ~~~sh
 Rscript code/Rscript_met_metric.R \
 	--pcnv example/example_pcnv.tsv \
-	--meth example/example_methylation_formatted.tsv \
+	--meth example/example_methylation_formatted.RDS \
 	--covariates example/example_methylation_covariates.tsv \
 	--cpg example/cpg_locations.tsv \
 	--cores 40 \
@@ -224,27 +308,68 @@ Rscript code/Rscript_met_metric.R \
 
 #### Combined omics-based metric
 
+The next step is to combine all calculated metrics into one table and calculate the combined metric. The parameters `--wgs`, `--ge` and `--meth` specify the metrics you have calculated. The metrics that you did not use, should be omitted. This step should be run even if just one type of metric was used.
+
+Additionally, `--num_combine` parameter specifies the number of metrics (up to three) that a CNV should have for it to be included in the combined metric calculation. For example, `--num_combine 2` means that a CNV should have at least two metrics out of three available.
+
+~~~sh
+Rscript code/Rscript_combined_metric.R \
+	--wgs example/wgs_metrics.tsv \
+	--ge example/ge_metrics.tsv \
+	--meth example/met_metrics.tsv \
+	--num_combine 2 \
+	-o example/full_metrics.tsv
+~~~
+
+---
+
 ### Modelling CNV quality
+
+CNV quality model-building step requires the previously compiled table of combined omics-based metrics. Note that the table should already contain all the columns that you wish to use as predictors. These column names should be listed either as `--sample_columns` (if they are sample-specific, e.g. number of CNV calls per sample) or `--cnv_columns` (if they are CNV-specific, e.g. CNV length in basepairs). When evaluating genotyping array-based CNVs, Some variables such as number of CNVs per sample are dependent on the array density. Therefore, we suggest correcting these values for array density prior model building step (see also Supplemental information of our [preprint](https://doi.org/10.1101/2022.02.07.479374)).
+
+Additionally, the name of the metric that you wish to model should be provided as `--metric_column`.
+
+~~~sh
+Rscript code/Rscript_model_cnv_quality.R \
+	-i example/full_metrics.tsv \
+	--metric_column Combined_Metric \
+	--sample_columns NumCNV,LRR_mean,LRR_SD,BAF_SD \
+	--cnv_columns Length_bp,No_probes \
+	-o example/oqs_model
+~~~
+
+---
 
 ### Scoring CNVs
 
-### PennCNV output conversion
+To score CNVs with your custom-built omics-informed quality model, a new (or overlapping) set of CNVs and two quality models (one for deletions, one for duplications) should be provided to the script.
+
+~~~sh
+Rscript code/Rscript_predict_cnv_quality.R \
+	-i example/example_pcnv_new.tsv \
+	--del_model example/oqs_model_deletions.tsv \
+	--dup_model example/oqs_model_duplications.tsv \
+	-o example/example_pcnv_new_quality_predictions.tsv
+~~~
 
 ### Applying PennCNV model to your CNV data
 
-## Analyses performed
+Applying our ready-to-use PennCNV quality models to your data is analogous to scoring CNVs with a custom-made model. You need to specify `--del_model models/PennCNV_model_deletions.tsv` and `--dup_model models/PennCNV_model_duplications.tsv`.
 
-### Familial CNV analysis
+Furthermore, the input CNV table should contain the following columns:
 
-Figure relatives of Omni
+~~~
+Max_Log_BF - PennCNV-specific CNV confidence measure
+Length_bp - CNV length in basepairs
+LRR_mean - Mean of log R ratio
+LRR_SD - Standard deviation of log R ratio
+BAF_mean - Mean of B allele frequency
+BAF_drift - Drift of B allele frequency
+NumCNV_bin - binary value that equals 1 when (number of CNVs per sample / array density) >3.8e-5 
+				and 0 otherwise
+~~~
 
-![](figures/fig_relatives.png)
-
-### Association analysis per CNV region
-
-Figure of 16p region
-
-![](figures/fig_16p.png)
+All parameters except `NumCNV_bin` are in standard PennCNV output.
 
 ## Contact and citation
 
@@ -262,7 +387,7 @@ zoltan.kutalik@unil.ch
 
 If you apply our omics-informed CNV quality estimation concept or use the OQS model for PennCNV in your work, please cite the following preprint:  
 
-*Lepamets M., Auwerx C., Nõukas M., Claringbould A., Porcu E., Kals M., Jürgenson T., Estonian Biobank Research Team, Morris A.P., Võsa U., Bochud M., Stringhini S., Wijmenga C., Franke L., Peterson H., Vilo J., Lepik K., Mägi R., Kutalik Z.* ***Omics-informed CNV calls reduce false positive rate and improve power for CNV-trait associations.*** *(2022) bioRxiv.* **LINK**
+*Lepamets M., Auwerx C., Nõukas M., Claringbould A., Porcu E., Kals M., Jürgenson T., Estonian Biobank Research Team, Morris A.P., Võsa U., Bochud M., Stringhini S., Wijmenga C., Franke L., Peterson H., Vilo J., Lepik K., Mägi R., Kutalik Z.* ***Omics-informed CNV calls reduce false positive rate and improve power for CNV-trait associations.*** *(2022) bioRxiv.* [https://doi.org/10.1101/2022.02.07.479374](https://doi.org/10.1101/2022.02.07.479374)
 
  
 
