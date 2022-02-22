@@ -37,16 +37,16 @@ read_pcnv <- function(pcnv) {
 
 read_wgscnv <- function(wgscnv) {
 	wgscnv <- fread(wgscnv, data.table=F)
-	wgs_probes <- wgscnv[1:9] ## TODO:FIX
-	wgs_genotypes <- wgscnv[10:ncol(wgscnv)] ## TODO:FIX
-	cat("WGS CNV table read... Found", ncol(wgs_probes), "header columns {", cat(names(wgs_probes), collapse = " ; "), "} and", ncol(wgs_genotypes), "samples\n")
+	wgs_probes <- wgscnv[1:3] 
+	wgs_genotypes <- wgscnv[4:ncol(wgscnv)] 
+	cat("WGS CNV table read... Found", ncol(wgs_probes), "header columns {", paste(names(wgs_probes), collapse = " ; "), "} and", ncol(wgs_genotypes), "samples\n")
 	return(list(wgs_probes = wgs_probes, wgs_genotypes = wgs_genotypes))
 }
 
 # retain the set of mutual samples
 get_filtered_samples <- function(samples, pcnv, wgscnv) {
-	if (is.null(samples)) samples <- intersect(unique(pcnv$Sample_Name), names(wgscnv))
-	else samples <- intersect(samples, intersect(unique(pcnv$Sample_Name), names(wgscnv)))
+	if (is.null(samples)) samples <- intersect(unique(pcnv$Sample_Name), names(wgscnv$wgs_genotypes))
+	else samples <- intersect(samples, intersect(unique(pcnv$Sample_Name), names(wgscnv$wgs_genotypes)))
 	cat("Find sample overlap: N =", length(samples), "\n")
 	return(samples)
 }
@@ -75,6 +75,8 @@ calculate_wgs_metric <- function (pcnv, wgscnv, cores) {
 
 		# extract chr data
                 this_chr_pcnv <- pcnv %>% filter(Chromosome == this_chr)
+		if (nrow(this_chr_pcnv) == 0) return(NULL)
+
 		this_chr_wgs_probes <- wgscnv_probes %>% filter(CHR == this_chr)
 		this_chr_wgs_genotypes <- wgscnv_genotypes[wgscnv_probes$CHR == this_chr,]
 
@@ -84,7 +86,7 @@ calculate_wgs_metric <- function (pcnv, wgscnv, cores) {
                         cnv_start <- this_chr_pcnv$Start_Position_bp[i]
                         cnv_end <- this_chr_pcnv$End_Position_bp[i]
                         cnv_sample <- this_chr_pcnv$Sample_Name[i]
-			cnv_is_deletion <- this_chr_pcnv$Copy_Number < 2
+			cnv_is_deletion <- this_chr_pcnv$Copy_Number[i] < 2
 
 			# extract corresponding WGS CNV
                         cnv_probes <- which(this_chr_wgs_probes$END >= cnv_start & this_chr_wgs_probes$START <= cnv_end)
@@ -166,7 +168,7 @@ option_list <- list(
 		help = "Input table of genotyping array CNV", metavar = "character"),
 	make_option("--wgscnv", type = "character", default = NULL,
 		help = "Input table with WGS CNV", metavar = "character"),
-	make_option(c("-s", "--samples", type = "character", default = NULL,
+	make_option(c("-s", "--samples"), type = "character", default = NULL,
 		help = "File with samples to include in the metric calculations. If NULL then all overlapping samples between --pcnv and --wgscnv are used (default = NULL)", metavar = "character"),
 	make_option("--cores", type = "numeric", default = 1,
 		help = "Number of threads (default = 1)", metavar = "character"),

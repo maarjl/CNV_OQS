@@ -126,7 +126,7 @@ First, we only keep the necessary data and convert the VCF file to tab-separated
 bcftools query \
 	-i 'FILTER="PASS"' \
 	-f '%CHROM\t%POS\t%END[\t%SAMPLE:CN=%CN:CNQ=%CNQ:FT=%FT]\n' \
-	example/example_wgs_cnv.vcf > example/example_wgs_cnv.tsv
+	example/example_wgs_cnv.vcf.gz > example/example_wgs_cnv.tsv
 ~~~
 
 Secondly, we perform the final conversion and filtering using a custom R script. For filtering based on FT tag (PASS/LQ) we run:
@@ -173,31 +173,35 @@ Gene expression (GE) metric is calculated as a measure of gene expression deviat
 As a results, we obtained an expression matrix with genes in rows and samples in columns:
 
 ~~~
-	sample001	sample002	...
-gene01	1.02	-0.09	...
-gene02	0.42	-0.89	...
+			sample001	sample002	...
+ENSG00000197465	1.02	-0.09	...
+ENSG00000204520	0.42	-0.89	...
 ...
 ~~~
 
 We have saved it as an R object with .RDS file extension (`example/example_gene_expression.RDS`).
 
-Additionally, a table with gene locations `--gene_loc` is required with columns `Name`, `Chromosome`, `Start` and `End`. Values in column `Name` should match the rownames of expression matrix.
+Additionally, a table with gene locations is required with columns `ID`, `Name`, `Chromosome`, `Start` and `End`. Values in column `ID` should match the rownames of expression matrix.
 
 ~~~
-Name	Chromosome	Start	End
-gene01	1	169818772	169863408
-gene02	20	49551404	49575092
+ID	Name	Chromosome	Start	End
+ENSG00000197465	GYPE	4	144792020	144826716
+ENSG00000204520	MICA	6	31371356	31383092
 ...
 ~~~
 
 ##### Correction for eQTLs
 
-Our method presents an option to correct gene expression values to its top eQTL genotypes prior GE metric calculations. For this, we only use eQTLs that are not correlated to CNVs. Our study suggests that such corrections improve the CNV quality estimations. 
+Our method presents an option to correct gene expression values to its top SNP eQTL genotypes prior GE metric calculations. For this, we only use SNP eQTLs that are not correlated to CNVs. Our study suggests that such corrections improve the CNV quality estimations. 
 
-Conditional eQTL analysis should be done with external software such as [qtltools](https://qtltools.github.io/qtltools/) and the output should be converted to a table `--eqtl` with following mandatory columns:
+Conditional eQTL analysis should be done with external software such as [qtltools](https://qtltools.github.io/qtltools/) and the output should be converted to a table with mandatory columns `Name` and `SNP`:
 
 ~~~
-*TODO: eQTL table example*
+ID	SNP
+ENSG00000197465	rs0001
+ENSG00000197465	rs0002
+ENSG00000204520	rs0003
+...
 ~~~ 
 
 We have included an R script to extract eQTLs that are not correlated to CNVs that overlap the corresponsing gene. Currently, our script only supports Plink v1 BED/BIM/FAM files for eQTL genotypes `--bfile`.
@@ -208,7 +212,7 @@ Rscript code/Rscript_get_independent_eqtl.R \
 	--eqtl example/eqtl_table.tsv \
 	--bfile example/eqtl_genotypes \
 	--gene_loc example/gene_locations.tsv \
-	-o example/independent_eqtl_table.tsv
+	-o example/independent_eqtl_list.RDS
 ~~~ 
 
 ##### Covariates table
@@ -239,7 +243,7 @@ Rscript code/Rscript_ge_metric.R \
 	--pcnv example/example_pcnv.tsv \
 	--ge example/example_gene_expression.RDS \
 	--covariates example/example_gene_expression_covariates.tsv \
-	--eqtl example/independent_eqtl_table.tsv \
+	--eqtl example/independent_eqtl_list.RDS \
 	--bfile example/eqtl_genotypes \
 	--gene_loc example/gene_location_table.tsv \
 	--gene_overlap 0.8 \
@@ -254,11 +258,11 @@ Rscript code/Rscript_ge_metric.R \
 
 #### Methylation metric
 
-Methylation (MET) metric is calculated analogously to GE metric and is a measure of overall methylation intensity deviation of a potential CNV carrier compared to general copy-neutral population. The required input includes the pCNV table and methylation IDAT files from Illumina Human Methylation 450k array. Additionally, a table with CpG site locations (`example/cpg_locations.tsv`) is required, containing columns `Name`, `Chromosome` and `Position`.
+Methylation (MET) metric is calculated analogously to GE metric and is a measure of overall methylation intensity deviation of a potential CNV carrier compared to general copy-neutral population. The required input includes the pCNV table and methylation IDAT files from Illumina Human Methylation 450k array. Additionally, a table with CpG site locations is required, containing columns `ID`, `Chromosome` and `Position`.
 
 ##### Methylation data preparations
 
-We require a two-column table (`samples_idat.tbl`) of samples containing sample names and path to its IDAT files:
+We require a two-column table (`--samples samples_idat.tbl`) of samples containing sample names and path to its IDAT files:
 
 ~~~
 Sample_Name	Path  
@@ -273,7 +277,13 @@ For each sample, a pair of IDAT files should be present `${Path}_Grn.idat` and `
 Rscript code/Rscript_prepare_methylation_matrices.R \
 	--samples samples_idat.tbl \
 	--output example/example_meth_formatted.RDS
+# input of this script (or idat files) is not included in the example data
 ~~~
+
+Some notes about the output matrices:
+
+* Only type II CpG sites will be used in the analysis; 
+* rownames of the output matrices should match the `Name` column in CpG site locations table.
 
 ##### Covariates table
 
@@ -287,7 +297,7 @@ Sample_Name	Study
 sample001	STD1
 sample002	STD1
 ...
-sample150	STD2
+sample050	STD2
 ...
 ~~~
 
@@ -299,7 +309,7 @@ Optionally, a number of PCs calculated from the overall methylation intensity ma
 Rscript code/Rscript_met_metric.R \
 	--pcnv example/example_pcnv.tsv \
 	--meth example/example_methylation_formatted.RDS \
-	--covariates example/example_methylation_covariates.tsv \
+	--covariates example/example_covariates.tsv \
 	--cpg example/cpg_locations.tsv \
 	--cores 40 \
 	--npcs 10 \

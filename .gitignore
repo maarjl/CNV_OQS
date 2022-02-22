@@ -1,2 +1,8 @@
 raw_figures/
+
 .DS_Store
+code/.DS_Store
+example/.DS_Store
+figures/.DS_Store
+models/.DS_Store
+
