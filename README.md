@@ -242,7 +242,7 @@ Additionally, GE metric calculation step takes the following optional parameters
 Rscript code/Rscript_ge_metric.R \
 	--pcnv example/example_pcnv.tsv \
 	--ge example/example_gene_expression.RDS \
-	--covariates example/example_gene_expression_covariates.tsv \
+	--covariates example/example_covariates.tsv \
 	--eqtl example/independent_eqtl_list.RDS \
 	--bfile example/eqtl_genotypes \
 	--gene_loc example/gene_location_table.tsv \
@@ -283,7 +283,7 @@ Rscript code/Rscript_prepare_methylation_matrices.R \
 Some notes about the output matrices:
 
 * Only type II CpG sites will be used in the analysis; 
-* rownames of the output matrices should match the `Name` column in CpG site locations table.
+* rownames of the output matrices should match the `ID` column in CpG site locations table.
 
 ##### Covariates table
 
