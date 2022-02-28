@@ -19,7 +19,7 @@ Our study focuses on CNV from array data using the popular [PennCNV](http://penn
 
 ## Workflow overview
 
-![Fig1](figures/fig1_overview.png)
+![Fig1](figures/fig1.pdf)
 
 **Our workflow can be summarised by the following steps:**
 
