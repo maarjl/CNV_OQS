@@ -19,7 +19,7 @@ Our study focuses on CNV from array data using the popular [PennCNV](http://penn
 
 ## Workflow overview
 
-![Fig1](figures/fig1.pdf)
+![Fig1](figures/fig1_overview.png)
 
 **Our workflow can be summarised by the following steps:**
 
@@ -49,6 +49,12 @@ Secondly, we evaluated the OQS prediction model and demonstrated the improvement
 
 * in close family members from three independent datasets, the ‘familial’ CNVs shared between relatives (likely true positives) scored significantly higher with OQS compared to CNVs that were not shared between relatives (mix of true and false positives);
 * considering 21 previously published CNV-trait associations ([Macé *et al.*, 2017](https://doi.org/10.1038/s41467-017-00556-x)) and 89,516 Estonian Biobank samples, we showed that the relative increase in variance explained was up to 34% and 55% when comparing OQS to raw PennCNV output and a previously published consensus-based CNV quality score (cQS) ([Macé *et al.*, 2016](https://doi.org/10.1093/bioinformatics/btw477)), respectively. 
+
+&nbsp;
+
+![Fig2](figures/fig_16p.png)
+
+*Figure. Comparison of 16p11.2 BP4-BP5 CNV region association to BMI using raw PennCNV output, consensus-based CNV quality score and omics-informed CNV quality score.*
 
 ## Workflow setup
 
