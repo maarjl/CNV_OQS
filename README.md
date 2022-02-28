@@ -335,7 +335,7 @@ Rscript code/Rscript_combined_metric.R \
 
 ### Modelling CNV quality
 
-CNV quality model-building step requires the previously compiled table of combined omics-based metrics. Note that the table should already contain all the columns that you wish to use as predictors. These column names should be listed either as `--sample_columns` (if they are sample-specific, e.g. number of CNV calls per sample) or `--cnv_columns` (if they are CNV-specific, e.g. CNV length in basepairs). When evaluating genotyping array-based CNVs, Some variables such as number of CNVs per sample are dependent on the array density. Therefore, we suggest correcting these values for array density prior model building step (see also Supplemental information of our [preprint](https://doi.org/10.1101/2022.02.07.479374)).
+CNV quality model-building step requires the previously compiled table of combined omics-based metrics. Note that the table should already contain all the columns that you wish to use as predictors. These column names should be listed either as `--sample_column` (if they are sample-specific, e.g. number of CNV calls per sample) or `--cnv_column` (if they are CNV-specific, e.g. CNV length in basepairs). When evaluating genotyping array-based CNVs, Some variables such as number of CNVs per sample are dependent on the array density. Therefore, we suggest correcting these values for array density prior model building step (see also Supplemental information of our [preprint](https://doi.org/10.1101/2022.02.07.479374)).
 
 Additionally, the name of the metric that you wish to model should be provided as `--metric_column`.
 
@@ -343,9 +343,12 @@ Additionally, the name of the metric that you wish to model should be provided a
 Rscript code/Rscript_model_cnv_quality.R \
 	-i example/full_metrics.tsv \
 	--metric_column Combined_Metric \
-	--sample_columns NumCNV,LRR_mean,LRR_SD,BAF_SD \
-	--cnv_columns Length_bp,No_probes \
+	--sample_column LRR_mean,LRR_SD,BAF_SD \
+	--cnv_column Length_bp,Max_Log_BF \
+	--k 3 \
+	--cores 20 \
 	-o example/oqs_model
+# for real datasets we advise using --k 10
 ~~~
 
 ---
