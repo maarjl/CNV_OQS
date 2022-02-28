@@ -359,10 +359,10 @@ To score CNVs with your custom-built omics-informed quality model, a new (or ove
 
 ~~~sh
 Rscript code/Rscript_predict_cnv_quality.R \
-	-i example/example_pcnv_new.tsv \
+	--pcnv example/example_pcnv_new.tsv \
 	--del_model example/oqs_model_deletions.tsv \
 	--dup_model example/oqs_model_duplications.tsv \
-	-o example/example_pcnv_new_quality_predictions.tsv
+	-o example/example_pcnv_new_oqs_predictions.tsv
 ~~~
 
 ### Applying PennCNV model to your CNV data
