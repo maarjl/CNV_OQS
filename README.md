@@ -114,13 +114,13 @@ The example pCNV table:
 
 ~~~
 Sample_Name	Chromosome	Start_Position_bp	End_Position_bp	Copy_Number	Length_bp	...
-sample001	3			5601191				5605087			1			3897
-sample001	16			77694411			77843210		3			148800
-sample002	2			242917734			243034519		1			116786
+sample001	3	5601191	5605087	1	3897
+sample001	16	77694411	77843210	3	148800
+sample002	2	242917734	243034519	1	116786
 ...
 ~~~
 
-*We will provide scripts for pCNV table formatting for PennCNV output.*
+Instructions for PennCNV output preprocessing can be found [**here**](#applying-penncnv-model-to-your-cnv-data).
 
 ---
 
@@ -381,9 +381,39 @@ Rscript code/Rscript_predict_cnv_quality.R \
 
 ## Applying PennCNV model to your CNV data
 
-Applying our ready-to-use PennCNV quality models to your data is analogous to scoring CNVs with a custom-made model. You need to specify `--del_model models/PennCNV_model_deletions.tsv` and `--dup_model models/PennCNV_model_duplications.tsv`.
+#### Preparing PennCNV output
 
-Furthermore, the input CNV table should contain the following columns:
+User guide to PennCNV is brought [elsewhere](http://penncnv.openbioinformatics.org/en/latest/) and will not be described here. There are two required PennCNV output files necessary to create the CNV table for quality estimations:
+
+* the cleaned CNV file with nearby CNV regions merged (output of PennCNV `clean_cnv.pl` script);
+* and sample quality summary table which can be generated using PennCNV `filter_cnv.pl` script (`-qcsumout` flag). 
+
+If corresponding parameters provided, this script will also calculate additional array size-dependent variables and filter samples based on maximum number of CNV calls and length. Example command line:
+
+~~~sh
+Rscript code/Rscript_convert_raw_penncnv_calls.R \
+	--cnv penncnv_cleaned.cnv \
+	--samples penncnv_qcsummary.qcsum \
+	--arraysize 700000 \
+	--max_numcnv 200 \
+	--max_len 10000000 \
+	--cores 20 \
+	-o pcnv_table.tsv
+~~~
+
+#### Estimating PennCNV calls quality
+
+Applying our ready-to-use PennCNV quality models to your data is analogous to scoring CNVs with a custom-made model:
+
+~~~sh
+Rscript code/Rscript_predict_cnv_quality.R \
+	--pcnv example/example_pcnv_new.tsv \
+	--del_model models/PennCNV_model_deletions.tsv \
+	--dup_model models/PennCNV_model_duplications.tsv \
+	-o example/penncnv_oqs_predictions.tsv
+~~~
+
+The input CNV table should contain the following columns (all included by `code/Rscript_convert_raw_penncnv_calls.R` script):
 
 ~~~
 Max_Log_BF - PennCNV-specific CNV confidence measure
@@ -392,11 +422,10 @@ LRR_mean - Mean of log R ratio
 LRR_SD - Standard deviation of log R ratio
 BAF_mean - Mean of B allele frequency
 BAF_drift - Drift of B allele frequency
-NumCNV_bin - binary value that equals 1 when (number of CNVs per sample / array density) >3.8e-5 
+NumCNV_bin - array size-dependent binary value that equals 1 when 
+				(number of CNVs per sample / array density) >3.8e-5 
 				and 0 otherwise
 ~~~
-
-All parameters except `NumCNV_bin` are in standard PennCNV output.
 
 ---
 
