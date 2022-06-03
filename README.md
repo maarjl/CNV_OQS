@@ -132,7 +132,9 @@ Whole genome sequencing (WGS) metric is calculated as the proportion of an array
 
 ##### WGS input conversion
 
-In our study we used WGS CNVs detected with [Genome STRiP pipeline](https://software.broadinstitute.org/software/genomestrip/), which outputs the CNVs in VCF format as described [here](https://www.internationalgenome.org/wiki/Analysis/Variant%20Call%20Format/VCF%20(Variant%20Call%20Format)%20version%204.0/encoding-structural-variants/). Our pipeline requires the presence of CHROM and POS (CNV start position) columns, END tag (CNV end position) in INFO column, CN (copy number) and CNQ/FT (CN quality/filter) tags in FORMAT column/genotype fields. 
+In our study we used WGS CNVs detected with [Genome STRiP pipeline](https://software.broadinstitute.org/software/genomestrip/), which outputs the CNVs in VCF format as described [here](https://www.internationalgenome.org/wiki/Analysis/Variant%20Call%20Format/VCF%20(Variant%20Call%20Format)%20version%204.0/encoding-structural-variants/). (The example Genome STRiP pipeline can be found [here](https://github.com/maarjl/CNV_OQS/tree/main/code/GenomeSTRiP).)
+
+Our pipeline requires the presence of CHROM and POS (CNV start position) columns, END tag (CNV end position) in INFO column, CN (copy number) and CNQ/FT (CN quality/filter) tags in FORMAT column/genotype fields. 
 
 First, we only keep the necessary data and convert the VCF file to tab-separated table using [bcftools](https://www.htslib.org/download/):
 
