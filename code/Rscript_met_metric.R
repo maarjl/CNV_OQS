@@ -1,5 +1,11 @@
 #!/usr/bin/Rscript
 
+
+# Copyright (c) 2022 University of Tartu
+# Distributed under terms of the MIT Licence (see LICENCE.txt)
+# Contact: Maarja Lepamets <maarja.lepamets@ut.ee>
+
+
 # Author: Maarja Lepamets
 # Date: 2022-02-14
 
